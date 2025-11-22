@@ -213,15 +213,22 @@ ls -la dist/credentials/
 
 ### Mudanças no código não aparecem
 
-**Causa:** Precisa rebuild.
+**Causa:** Cache do n8n + precisa rebuild e re-link.
 
-**Solução:**
+**Solução COMPLETA:**
 ```bash
-cd toqan-community-node
-npm run build
+# Parar n8n (Ctrl+C)
 
-# Reiniciar n8n
+cd toqan-community-node
+npm run build        # 1. Rebuild
+npm link            # 2. Atualizar link
+rm -rf ~/.n8n/cache # 3. LIMPAR CACHE (CRÍTICO!)
+
+# Restart n8n
+n8n start
 ```
+
+**Hard refresh no browser:** `Cmd + Shift + R`
 
 ---
 
@@ -279,22 +286,55 @@ Teste cada item no n8n local:
 
 ---
 
-## 🔄 Workflow de Iteração
+## 🔄 Workflow de Iteração (SEMPRE FAÇA ISSO!)
+
+### ⚠️ CRÍTICO: Mudanças não aparecem?
+
+**O n8n cacheia os nodes!** Sempre faça isso após mudanças:
 
 ```bash
-# 1. Fazer mudanças no código TypeScript
-vim nodes/Toqan/Toqan.node.ts
+# 1. Parar n8n
+# Ctrl+C no terminal do n8n
 
-# 2. Rebuild
+# 2. Ir para o projeto
+cd toqan-community-node
+
+# 3. Rebuild
 npm run build
 
-# 3. Reiniciar n8n
-# Ctrl+C no terminal
+# 4. Atualizar link global (IMPORTANTE!)
+npm link
+
+# 5. Limpar cache do n8n (CRÍTICO!)
+rm -rf ~/.n8n/cache
+
+# 6. Reiniciar n8n
 n8n start
+```
 
-# 4. Testar no n8n UI
+### 📝 Script Helper
 
-# Repetir até satisfeito!
+Crie um arquivo `update-and-restart.sh`:
+
+```bash
+#!/bin/bash
+echo "🔨 Building..."
+npm run build
+
+echo "🔗 Updating link..."
+npm link
+
+echo "🗑️  Clearing n8n cache..."
+rm -rf ~/.n8n/cache
+
+echo "✅ Done! Restart n8n now (Ctrl+C and run 'n8n start')"
+```
+
+**Uso:**
+```bash
+chmod +x update-and-restart.sh
+./update-and-restart.sh
+# Depois: Ctrl+C no n8n e n8n start
 ```
 
 ---

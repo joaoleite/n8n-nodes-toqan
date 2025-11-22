@@ -27,6 +27,43 @@ const configuredOutputs = (parameters: INodeParameters) => {
     return [{ type: 'main', displayName: '' }];
 };
 
+// Helper function to process <think> tags in AI responses
+function processThinking(response: IDataObject): IDataObject {
+    const answer = response.answer as string;
+
+    if (!answer) {
+        return response;
+    }
+
+    // Match <think>...</think> tags
+    const thinkingRegex = /<think>(.*?)<\/think>\s*/s;
+    const match = answer.match(thinkingRegex);
+
+    if (match) {
+        // Extract thinking content
+        const thinking = match[1].trim();
+        // Remove thinking from answer
+        const cleanAnswer = answer.replace(thinkingRegex, '').trim();
+
+        return {
+            ...response,
+            answer_original: answer,
+            answer: cleanAnswer,
+            thinking: thinking,
+            has_thinking: true,
+        };
+    }
+
+    // No thinking found
+    return {
+        ...response,
+        answer_original: answer,
+        answer: answer,
+        thinking: null,
+        has_thinking: false,
+    };
+}
+
 export class Toqan implements INodeType {
     description: INodeTypeDescription = {
         displayName: 'Toqan AI',
@@ -315,18 +352,25 @@ export class Toqan implements INodeType {
 
                     // Step 2: Poll for answer
                     const startTime = Date.now();
+                    const startTimestamp = new Date(startTime).toISOString();
                     const timeoutMs = timeout * 1000;
                     let lastResponse: IDataObject = {};
 
                     while (true) {
                         // Check if timeout exceeded
                         if (Date.now() - startTime > timeoutMs) {
+                            const endTime = Date.now();
+                            const endTimestamp = new Date(endTime).toISOString();
+
                             timeoutData.push({
                                 json: {
                                     error: 'Timeout exceeded waiting for response',
                                     conversation_id: conversationId,
                                     request_id: requestId,
                                     last_status: lastResponse.status || 'unknown',
+                                    elapsed_ms: endTime - startTime,
+                                    started_at: startTimestamp,
+                                    finished_at: endTimestamp,
                                 },
                                 pairedItem: { item: i },
                             });
@@ -355,14 +399,37 @@ export class Toqan implements INodeType {
                             const status = lastResponse.status as string;
 
                             if (status === 'finished') {
+                                const endTime = Date.now();
+                                const endTimestamp = new Date(endTime).toISOString();
+
+                                // Process thinking tags and add metadata
+                                const processedResponse = processThinking(lastResponse);
+
                                 finishedData.push({
-                                    json: lastResponse,
+                                    json: {
+                                        ...processedResponse,
+                                        conversation_id: conversationId,
+                                        request_id: requestId,
+                                        elapsed_ms: endTime - startTime,
+                                        started_at: startTimestamp,
+                                        finished_at: endTimestamp,
+                                    },
                                     pairedItem: { item: i },
                                 });
                                 break;
                             } else if (status === 'error') {
+                                const endTime = Date.now();
+                                const endTimestamp = new Date(endTime).toISOString();
+
                                 errorData.push({
-                                    json: lastResponse,
+                                    json: {
+                                        ...lastResponse,
+                                        conversation_id: conversationId,
+                                        request_id: requestId,
+                                        elapsed_ms: endTime - startTime,
+                                        started_at: startTimestamp,
+                                        finished_at: endTimestamp,
+                                    },
                                     pairedItem: { item: i },
                                 });
                                 break;
