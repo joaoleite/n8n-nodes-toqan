@@ -1,0 +1,111 @@
+{
+    "name": "Toqan Chat Model - Exemplo Simples",
+    "nodes": [
+        {
+            "parameters": {
+                "options": {}
+            },
+            "id": "chat-trigger",
+            "name": "Chat Trigger",
+            "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                240,
+                380
+            ],
+            "webhookId": "toqan-chat-example"
+        },
+        {
+            "parameters": {},
+            "id": "toqan-chat-model",
+            "name": "Toqan Chat Model",
+            "type": "@joaoleite/n8n-nodes-toqan.toqanChatModel",
+            "typeVersion": 1,
+            "position": [
+                460,
+                200
+            ],
+            "credentials": {
+                "toqanApi": {
+                    "id": "SUBSTITUA_PELA_SUA_CREDENCIAL",
+                    "name": "Toqan AI API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "agent": "conversationalAgent",
+                "promptType": "define",
+                "text": "=Você é um assistente útil e amigável. Responda de forma clara e concisa.",
+                "hasOutputParser": true
+            },
+            "id": "ai-agent",
+            "name": "AI Agent",
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 1.7,
+            "position": [
+                460,
+                380
+            ]
+        },
+        {
+            "parameters": {
+                "sessionIdType": "customKey",
+                "sessionKey": "={{ $json.sessionId }}",
+                "contextWindowLength": 10
+            },
+            "id": "window-buffer-memory",
+            "name": "Window Buffer Memory",
+            "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+            "typeVersion": 1.3,
+            "position": [
+                460,
+                560
+            ]
+        }
+    ],
+    "connections": {
+        "Chat Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Toqan Chat Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Window Buffer Memory": {
+            "ai_memory": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_memory",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {},
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [],
+    "triggerCount": 0,
+    "updatedAt": "2025-11-25T00:00:00.000Z",
+    "versionId": "1"
+}
